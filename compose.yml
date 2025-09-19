@@ -1,0 +1,54 @@
+services:
+  db:
+    image: mariadb:11
+    container_name: wp_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3307:3306"  # ถ้าพอร์ต 3306 ชน ให้เปิด 3307 แทน
+
+  wordpress:
+    build: .
+    container_name: wp_app
+    depends_on:
+      - db
+    restart: unless-stopped
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+      WORDPRESS_DB_NAME: ${DB_NAME}
+
+      # ====== ENV สำหรับปลั๊กอิน ======
+      TOBWAI_API_BASE_URL: ${TOBWAI_API_BASE_URL}
+      TOBWAI_LICENSE_PUBLIC_KEY: ${TOBWAI_LICENSE_PUBLIC_KEY}
+      TOBWAI_PLUGIN_DEBUG: "true"
+    ports:
+      - "8080:80"
+    volumes:
+      # ติดตั้งปลั๊กอินของคุณเข้า wp-content/plugins
+      - ../tobwai-wordpress-plugin:/var/www/html/wp-content/plugins/tobwai-wordpress-plugin
+      # อนุญาตให้แก้ธีมหรืออัปโหลดไฟล์ได้ข้ามคอนเทนเนอร์ (ไม่บังคับ)
+      - wp_uploads:/var/www/html/wp-content/uploads
+
+  phpmyadmin:
+    image: phpmyadmin:5
+    container_name: wp_pma
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      PMA_HOST: db
+      UPLOAD_LIMIT: 256M
+    ports:
+      - "8081:80"
+
+volumes:
+  db_data:
+  wp_uploads:
